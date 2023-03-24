@@ -28,9 +28,10 @@ public class NetworkMovement : NetworkBehaviour
     private float climbOnTopOfTheWallSpeedForward = 1.8f;
     public float gravity = -9.81f;
     public float jumpHeight = 7f;
+    public float blastForce = 3000f;
 
     public Transform groundCheck;
-    public float groundDistance = 0.3f;
+    public float groundDistance = 0.2f;
     [SerializeField]
     private LayerMask groundMask;
     [SerializeField]
@@ -47,9 +48,12 @@ public class NetworkMovement : NetworkBehaviour
     bool falling = false;
     bool jumping = false;
     bool onWall = false;
+    bool canClimb = false;
     bool climbingWall = false;
     bool fallingFromTheWall = false;
     bool readyToClimbOnTheWallTop = false;
+    bool isZipping = false;
+    bool ropeFly = false;
 
     public float turnSmoothTime = 0.9f;
     Vector3 velocity;
@@ -111,7 +115,28 @@ public class NetworkMovement : NetworkBehaviour
         }
     }
 
+    public bool isZippingUp
+    {
+        get { return isZipping; }
+        set
+        {
+            if (value != isZipping)
+            {
+                isZipping = value;
+                if (isZipping)
+                {
+                    FaceTheRope();
+                    PositionOnRope();
+                }
+            }
+        }
+    }
+    private bool canZipUp = false;
+
+    private Vector3 ropePosition;
+
     private bool mobilePress = false;
+    private bool mobileRope = false;
 
     private bool climbUpWall;
     private bool isJumpAvalable;
@@ -119,7 +144,7 @@ public class NetworkMovement : NetworkBehaviour
     private bool canJump = true;
     private bool isJumping;
 
-    public static Vector3 respawn_point = new Vector3(-4, 0.5f, 0);
+    public static Vector3 respawn_point = new Vector3(2, 3, -1);
     private float respawn_Height = -10f;
 
     private PlayerInput playerInput;
@@ -145,8 +170,14 @@ public class NetworkMovement : NetworkBehaviour
         isOnWall,
         isClimbingWall,
         isFallingOfTheWall,
-        isClimbingOnTopOfTheWall
+        isClimbingOnTopOfTheWall,
+        isZippingUp
     }
+    [SerializeField] private AudioSource landSoundEffect;
+    [SerializeField] private AudioSource runningSoundEffect;
+    [SerializeField] private AudioSource walkingSoundEffect;
+
+    public GameObject flag;
 
     private void Start()
     {
@@ -168,7 +199,7 @@ public class NetworkMovement : NetworkBehaviour
         jumpButton = jump.GetComponent<Button>();
         jumpButtonImage = jump.GetComponent<Image>();
         GameObject text = GameObject.Find("JumpText");
-        Debug.Log(text);
+
         jumpText = text.GetComponent<TMP_Text>();
         jumpButton.enabled = false;
         jumpButtonImage.enabled = false;
@@ -183,14 +214,22 @@ public class NetworkMovement : NetworkBehaviour
             ClientCursor();
             if (climbUpTheWall)
             {
-               Client_ClimbOnTopOfTheWall();
+                Client_ClimbOnTopOfTheWall();
             }
             else if (isOnWall)
                 Client_WallClimb();
+            else if (isZippingUp)
+            {
+                ZipUp();
+            }
+            else if (ropeFly)
+                RopeFly();
             else
                 Client_Movement();
 
             Client_CheckForWall();
+            Client_CheckForRope();
+            JumpButton();
             SetVisualsOfTheClientToTheServer();
         }
         ClientVisuals();
@@ -212,6 +251,87 @@ public class NetworkMovement : NetworkBehaviour
             controller.Move(new Vector3(0, climbOnTopOfTheWallSpeedUp, -climbOnTopOfTheWallSpeedForward) * Time.deltaTime);
         else if (wallSideIndex == 4)
             controller.Move(new Vector3(-climbOnTopOfTheWallSpeedForward, climbOnTopOfTheWallSpeedUp, 0) * Time.deltaTime);
+    }
+    void ZipUp()
+    {
+        Vector3 moveDir = transform.up;
+
+        controller.Move(moveDir.normalized * speed * Time.deltaTime);
+    }
+
+    void RopeFly()
+    {
+        falling = true;
+        Vector3 moveDir = transform.up - transform.forward;
+        velocity.y += gravity * Time.deltaTime;
+
+        controller.Move(velocity * Time.deltaTime);
+        controller.Move(moveDir.normalized * 12 * Time.deltaTime);
+
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+
+        if (isGrounded)
+            ropeFly = false;
+    }
+
+    void Client_CheckForRope()
+    {
+        if ((Input.GetKeyDown(KeyCode.F) || mobileRope))
+        {
+            mobileRope = false;
+            if (canZipUp)
+            {
+                isZippingUp = true;
+                canZipUp = false;
+
+            }
+            else if (isZippingUp)
+            {
+                isZippingUp = false;
+            }
+        }
+    }
+
+
+    void FaceTheRope()
+    {
+        // Calculate the rotation needed to face the object while maintaining current rotation
+        Vector3 direction = ropePosition - transform.position;
+        Quaternion targetRotation = Quaternion.LookRotation(direction, transform.up);
+
+        // Rotate the character controller to face the object
+        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, targetRotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+    }
+
+    void PositionOnRope()
+    {
+        transform.position = new Vector3(ropePosition.x,  transform.position.y, ropePosition.z);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Rope"))
+        {
+            canZipUp = true;
+            ropePosition = other.gameObject.transform.position;
+        }
+        else if (other.gameObject.CompareTag("RopeLaunch"))
+        {
+            if (isZippingUp)
+            {
+                ropeFly = true;
+                isZipping = false;
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.CompareTag("Rope"))
+        {
+            canZipUp = false;
+            wallIdentication.enabled = false;
+        }
     }
 
     void Client_Movement()
@@ -270,7 +390,6 @@ public class NetworkMovement : NetworkBehaviour
             float horizontal = Input.GetAxisRaw("Horizontal");
             float vertical = Input.GetAxisRaw("Vertical");
 
-
             direction = new Vector3(horizontal, 0f, vertical).normalized;
         }
 
@@ -285,7 +404,6 @@ public class NetworkMovement : NetworkBehaviour
         }
         //speed
         currentSpeed();
-
         if (direction.magnitude >= 0.1f)
         {
             sprint();
@@ -304,21 +422,14 @@ public class NetworkMovement : NetworkBehaviour
         }
     }
 
+
+
     void Client_CheckForWall()
     {
         if (Physics.Raycast(transform.position + new Vector3(0, 1.3f), transform.forward, out forwardHit, 0.5f, wallMask))
         {
-            if (!isOnWall)
-            {
-                wallIdentication.enabled = true;
-                if (menu.GetComponent<Menu>().mobile)
-                {
-                    jumpButton.enabled = false;
-                    jumpButtonImage.enabled = false;
-                    jumpText.enabled = false;
-                }
-            }
             CheckForWallPart2();
+            canClimb = true;
         }
         else if (Physics.Raycast(transform.position + new Vector3(0, 1f), transform.forward, out forwardHitLowerBody, 1, wallMask) && (readyToClimbOnTheWallTop))
         {
@@ -327,6 +438,24 @@ public class NetworkMovement : NetworkBehaviour
         else
         {
             isOnWall = false;
+            canClimb = false;
+        }
+    }
+
+    void JumpButton()
+    {
+        if (canClimb || canZipUp || isZippingUp)
+        {
+            wallIdentication.enabled = true;
+            if (menu.GetComponent<Menu>().mobile)
+            {
+                jumpButton.enabled = false;
+                jumpButtonImage.enabled = false;
+                jumpText.enabled = false;
+            }
+        }
+        else
+        {
             wallIdentication.enabled = false;
             if (menu.GetComponent<Menu>().mobile)
             {
@@ -361,8 +490,10 @@ public class NetworkMovement : NetworkBehaviour
     }
     public void CheckForWallPart2Mobile()
     {
-        Debug.Log("Pressed");
-        mobilePress = true;
+        if (canClimb)
+            mobilePress = true;
+        if (canZipUp || isZippingUp)
+            mobileRope = true;
     }
 
     void Client_WallClimb()
@@ -500,6 +631,8 @@ public class NetworkMovement : NetworkBehaviour
             UpdatePlayerStateServerRpc(PlayerState.isFallingOfTheWall);
         if (climbUpTheWall)
             UpdatePlayerStateServerRpc(PlayerState.isClimbingOnTopOfTheWall);
+        if (isZippingUp)
+            UpdatePlayerStateServerRpc(PlayerState.isZippingUp);
     }
 
     [ServerRpc]
@@ -519,6 +652,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isFallingOfTheWall", false);
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
+            m_Animator.SetBool("isZippingUp", false);
         }
         else if (networkPlayerState.Value == PlayerState.isRunning)
         {
@@ -529,6 +663,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isFallingOfTheWall", false);
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
+            m_Animator.SetBool("isZippingUp", false);
         }
         else if (networkPlayerState.Value == PlayerState.isIdle)
         {
@@ -538,6 +673,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
             m_Animator.SetBool("isFallingOfTheWall", false);
+            m_Animator.SetBool("isZippingUp", false);
         }
         else if (networkPlayerState.Value == PlayerState.isJumping)
         {
@@ -552,6 +688,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isGrounded", false);
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
+            m_Animator.SetBool("isZippingUp", false);
         }
         else if (networkPlayerState.Value == PlayerState.isLanding)
         {
@@ -584,13 +721,22 @@ public class NetworkMovement : NetworkBehaviour
         {
             m_Animator.SetBool("isClimbingOnTopOfTheWall", true);
         }
+        else if (networkPlayerState.Value == PlayerState.isZippingUp)
+        {
+            m_Animator.SetBool("isZippingUp", true);
+            m_Animator.SetBool("isWallClimbing", false);
+            m_Animator.SetBool("isGrounded", false);
+            m_Animator.SetBool("isRunning", false);
+            m_Animator.SetBool("isWalking", false);
+            m_Animator.SetBool("isJumping", false);
+            m_Animator.SetBool("isFalling", false);
+        }
     }
 
     public void Jump()
     {
         if (!isGrounded || !canJump)
             return;
-
         velocity.y = Mathf.Sqrt(-jumpHeight * gravity);
         jumping = true;
         isJumping = true;
@@ -638,5 +784,50 @@ public class NetworkMovement : NetworkBehaviour
             speed = runningSpeed;
         else
             speed = walkingSpeed;
+    }
+
+    void jumpUpSound()
+    {
+        //jumpSoundEffect.Play();
+    }
+
+    void landSound()
+    {
+        Debug.Log(landSoundEffect.isPlaying);
+        //if (!landSoundEffect.isPlaying)
+            landSoundEffect.Play();
+        Debug.Log(landSoundEffect.isPlaying);
+    }
+
+    void runSound()
+    {
+        if (!runningSoundEffect.isPlaying)
+            runningSoundEffect.Play();
+        if (walkingSoundEffect.isPlaying)
+            walkingSoundEffect.Stop();
+    }
+    
+    void idleSound()
+    {
+        if (runningSoundEffect.isPlaying)
+            runningSoundEffect.Stop();
+        if (walkingSoundEffect.isPlaying)
+            walkingSoundEffect.Stop();
+    }
+
+    void walkingSound()
+    {
+        if (!walkingSoundEffect.isPlaying)
+            walkingSoundEffect.Play();
+        if (runningSoundEffect.isPlaying)
+            runningSoundEffect.Stop();
+    }
+
+    void isFallingSound()
+    {
+        if (runningSoundEffect.isPlaying)
+            runningSoundEffect.Stop();
+        if (walkingSoundEffect.isPlaying)
+            walkingSoundEffect.Stop();
     }
 }

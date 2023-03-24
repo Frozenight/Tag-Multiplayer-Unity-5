@@ -5,6 +5,9 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
+using Cinemachine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 public class Menu : MonoBehaviour
 {
@@ -16,6 +19,7 @@ public class Menu : MonoBehaviour
     [SerializeField] private GameObject paused_menu;
     [SerializeField] private Toggle mobile_toggle;
     [SerializeField] private TMP_Dropdown screenMode_dropdown;
+    [SerializeField] private TMP_Dropdown difficulty_dropdown;
     [SerializeField] private GameObject loading_screen;
 
     [SerializeField] private GameObject joystick;
@@ -28,12 +32,14 @@ public class Menu : MonoBehaviour
     public TMP_Text host_IPadress_textbox;
     public TMP_Text connectionState_text;
 
-    private TMP_Text score_1;
+    public TMP_Text score_1;
     private TMP_Text score_2;
 
+    [SerializeField]  private GameObject RoundsController;
 
     public bool mobile = false;
 
+    private bool gameIsOn = false;
 
     private void Start()
     {
@@ -41,43 +47,13 @@ public class Menu : MonoBehaviour
         score_1 = score1.GetComponent<TextMeshProUGUI>();
         GameObject score2 = GameObject.Find("Score_2");
         score_2 = score2.GetComponent<TextMeshProUGUI>();
-
         screenMode_dropdown.value = PlayerPrefs.GetInt("ScreenMode");
-        //Fetch the Toggle GameObject
-        GameObject toggle = GameObject.Find("Mobile_toggle");
-        //Add listener for when the state of the Toggle changes, to take action
-        mobile_toggle.onValueChanged.AddListener(delegate {
-            ToggleValueChanged(mobile_toggle);
-        });
-    }
 
-    public void playerInitiated()
-    {
-        if (mobile)
-        {
-            pause_button.gameObject.SetActive(true);
-            jump_button.gameObject.SetActive(true);
-            sprint_button.gameObject.SetActive(true);
-            joystick.SetActive(true);
-        }
-        score_1.enabled = true;
-        score_2.enabled = true;
-    }
-
-    //Output the new state of the Toggle into Text
-    void ToggleValueChanged(Toggle change)
-    {
-        if (change.isOn)
-        {
+        if (SystemInfo.deviceType == DeviceType.Handheld)
             mobile = true;
-            screenMode_dropdown.gameObject.SetActive(false);
-        }
-        else
-        { 
-            mobile = false;
-            screenMode_dropdown.gameObject.SetActive(true);
-        }
+
     }
+
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -91,6 +67,7 @@ public class Menu : MonoBehaviour
 
     public void Start_Game()
     {
+        gameIsOn = true;
         connection_menu.SetActive(false);
         Cursor.lockState = CursorLockMode.Locked;
         loading_screen.SetActive(true);
@@ -143,8 +120,18 @@ public class Menu : MonoBehaviour
             PlayerPrefs.SetInt("ScreenMode", 3);
         }
     }
+
     public IEnumerator StartCooldown()
     {
+        if (mobile)
+        {
+            pause_button.gameObject.SetActive(true);
+            jump_button.gameObject.SetActive(true);
+            sprint_button.gameObject.SetActive(true);
+            joystick.SetActive(true);
+        }
+        score_1.enabled = true;
+        score_2.enabled = true;
         yield return new WaitForSeconds(1);
         GameObject obj = GameObject.Find("FreeLookCamera");
         obj.GetComponent<FollowCamera>().Assign();
@@ -163,7 +150,8 @@ public class Menu : MonoBehaviour
             }
         }
         NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.Address = IP;
-        NetworkManager.Singleton.StartHost(); StartCoroutine(StartCooldown());
+        NetworkManager.Singleton.StartHost(); 
+        StartCoroutine(StartCooldown());
         local_menu.SetActive(false);
     }
 
@@ -203,7 +191,8 @@ public class Menu : MonoBehaviour
     }
     public void Pause_Game()
     {
-        paused_menu.SetActive(true);
+        if (gameIsOn)
+            paused_menu.SetActive(true);
     }
 
     public void Continue_Game()
@@ -213,10 +202,19 @@ public class Menu : MonoBehaviour
     }
     public void Disconnect()
     {
+        NetworkManager networkManager = GameObject.FindObjectOfType<NetworkManager>();
+
+        GameObject.Destroy(networkManager.gameObject);
+
+        SceneManager.LoadScene("Menu");
+
+        Cursor.lockState = CursorLockMode.None;
+        gameIsOn = false;
         paused_menu.SetActive(false);
         menu.SetActive(true);
         pause_button.gameObject.SetActive(false);
-        jump_button.gameObject.SetActive(false);
+        connectionState_text.enabled = false;
+        //jump_button.gameObject.SetActive(false);
         sprint_button.gameObject.SetActive(false);
         joystick.SetActive(false);
         score_1.enabled = false;

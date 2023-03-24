@@ -28,21 +28,25 @@ public class GameManager : MonoBehaviour
     private RelayHostData _hostData;
     private RelayJoinData _joinData;
 
-    // SetUp events
-
     // Notify state Update
     public UnityAction<string, ulong> UpdateState;
     // Notify match found
     public UnityAction MatchFound;
+
+    private bool HeartBeatActive = false;
+
+    [SerializeField] private Menu menuContoller;
 
     private void Awake()
     {
         // Just a basic Singleton
         if (_instance is null)
         {
+            Debug.Log("Is Null");
             _instance = this;
             return;
         }
+        Debug.Log("Destroying");
 
         Destroy(this);
     }
@@ -53,53 +57,54 @@ public class GameManager : MonoBehaviour
         // Initialize unity services
         await UnityServices.InitializeAsync();
 
-        // Set events listeners
-        SetUpEvents();
+        SetupEvents();
 
         // Unity Login
         await SignInAnonymousAsync();
 
         // Subscribe to NetworkManager events
         NetworkManager.Singleton.OnClientConnectedCallback += ClientConnected;
+
+        NetworkManager.Singleton.OnClientDisconnectCallback += ClientDisconnected;
     }
 
     private void ClientConnected(ulong id)
     {
         Debug.Log("Connect player with ID " + id);
         playerID = (int)id;
-        UpdateState?.Invoke("Player found!", id);
         MatchFound?.Invoke();
+        if (id == 1)
+            UpdateState?.Invoke("Player found!", id);
+    }
+
+    private async void ClientDisconnected(ulong id)
+    {
+        Debug.Log("Player diconnected: " + id);
+        NetworkManager.Singleton.Shutdown();
+        HeartBeatActive = false;
+        Cursor.lockState = CursorLockMode.None;
+
+        UpdateState?.Invoke("", 0);
+        menuContoller.Disconnect();
+        GetComponent<Rounds>().Disconnect();
+
+        await SignOut();
+        NetworkManager networkManager = GameObject.FindObjectOfType<NetworkManager>();
+        Destroy(networkManager.gameObject);
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Menu");
     }
 
     #region Login
 
-    void SetUpEvents()
-    {
-        AuthenticationService.Instance.SignedIn += () =>
-        {
-            // Shows how to get a player ID
-            Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
-
-            // Shows how to get an access token
-            Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
-        };
-
-        AuthenticationService.Instance.SignInFailed += (err) =>
-        {
-            Debug.LogError(err);
-        };
-
-        AuthenticationService.Instance.SignedOut += () =>
-        {
-            Debug.Log("Player signed out");
-        };
-    }
 
     async Task SignInAnonymousAsync()
     {
         try {
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
             Debug.Log("Sign in anonymously succeeded!");
+
+            // Shows how to get the playerID
+            Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
         }
 
         catch (Exception ex)
@@ -202,7 +207,6 @@ public class GameManager : MonoBehaviour
             // Retrieve JoinCode
             _hostData.JoinCode = await Relay.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
-
             string lobbyName = "game_lobby";
             int maxPlayers = 2;
             CreateLobbyOptions options = new CreateLobbyOptions();
@@ -223,6 +227,7 @@ public class GameManager : MonoBehaviour
             Debug.Log("Created lobby: " + lobby.Id);
 
             // Heartbeat hte lobby every 15 sec
+            HeartBeatActive = true;
             StartCoroutine(HeartBeatLobbyCoroutine(lobby.Id, 15));
 
             // Now that RELAY and LOBBY are set..
@@ -234,7 +239,14 @@ public class GameManager : MonoBehaviour
                 _hostData.Key,
                 _hostData.ConnectionData);
             // Start Host
-            NetworkManager.Singleton.StartHost();
+            try
+            {
+                NetworkManager.Singleton.StartHost();
+            }
+            catch
+            {
+                Debug.Log("Failed to StartHost()");
+            }
             GameObject menu = GameObject.Find("Canvas");
             StartCoroutine(menu.GetComponent<Menu>().StartCooldown());
 
@@ -250,15 +262,20 @@ public class GameManager : MonoBehaviour
 
     public async void Disconnect()
     {
-        Debug.Log(_lobbyId + " " + playerID.ToString());
-        if (playerID == 0)
-        {
-            NetworkManager.Singleton.Shutdown();
-            Debug.Log("Disconnected!");
-            //deletePlayer();
-        }
-        else
-            await LobbyService.Instance.RemovePlayerAsync(_lobbyId, playerID.ToString());
+        NetworkManager.Singleton.Shutdown();
+        GetComponent<Rounds>().Disconnect();
+        Cursor.lockState = CursorLockMode.None;
+        HeartBeatActive = false;
+        deletePlayer();
+        await SignOut();
+        NetworkManager networkManager = GameObject.FindObjectOfType<NetworkManager>();
+        Destroy(networkManager.gameObject);
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Menu");
+    }
+
+    async Task SignOut()
+    {
+       AuthenticationService.Instance.SignOut();
     }
 
     private void deletePlayer()
@@ -267,17 +284,17 @@ public class GameManager : MonoBehaviour
         GameObject myPlayer = null;
         foreach (var player in tPlayer)
         {
-            if (player.GetComponent<Owner>() != null)
                 myPlayer = player;
         }
         Destroy(myPlayer);
     }
 
+
     IEnumerator HeartBeatLobbyCoroutine(string loobyID, float waitTimeSeconds)
     {
         var delay = new WaitForSecondsRealtime(waitTimeSeconds);
 
-        while (true)
+        while (HeartBeatActive)
         {
             Lobbies.Instance.SendHeartbeatPingAsync(loobyID);
             Debug.Log("Lobby HeartBeat");
@@ -290,7 +307,34 @@ public class GameManager : MonoBehaviour
         // We need to delete the lobby when we're not using it
         Lobbies.Instance.DeleteLobbyAsync(_lobbyId);
     }
+
     #endregion
+
+    // Setup authentication event handlers if desired
+    void SetupEvents()
+    {
+        AuthenticationService.Instance.SignedIn += () => {
+            // Shows how to get a playerID
+            Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
+
+            // Shows how to get an access token
+            Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
+
+        };
+
+        AuthenticationService.Instance.SignInFailed += (err) => {
+            Debug.LogError(err);
+        };
+
+        AuthenticationService.Instance.SignedOut += () => {
+            Debug.Log("Player signed out.");
+        };
+
+        AuthenticationService.Instance.Expired += () =>
+        {
+            Debug.Log("Player session could not be refreshed and expired.");
+        };
+    }
 
     // RelayHostData represents the necessary information for a Host to host a game on a Relay
     public struct RelayHostData

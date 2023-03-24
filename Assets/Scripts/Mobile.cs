@@ -5,7 +5,7 @@ using UnityEngine;
 public class Mobile : MonoBehaviour
 {
     private bool sprinting = false;
-    public void changeValue()
+    private void changeValue()
     {
         GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
         GameObject myPlayer = null;

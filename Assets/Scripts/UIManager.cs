@@ -36,6 +36,8 @@ public class UIManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        Debug.Log("Removed UpdateState");
         GameManager.instance.UpdateState -= UpdateState;
+        GameManager._instance = null;
     }
 }

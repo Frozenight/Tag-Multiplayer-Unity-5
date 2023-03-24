@@ -8,11 +8,15 @@ public class Rounds : NetworkBehaviour
 {
     private int playerID = -1;
 
-    private Vector3 _chaserStartingPoint = new Vector3(20, 0.53f, -14);
-    private Vector3 _runnerStartingPoint = new Vector3(-10, 0.53f, 10);
+    private Vector3 _chaserStartingPoint = new Vector3(15, 0.53f, -14);
+    private Vector3 _runnerStartingPoint = new Vector3(-15, 0.53f, 10);
 
     public NetworkVariable<int> firstPlyaerPoints = new NetworkVariable<int>(0);
     public NetworkVariable<int> secondPlyaerPoints = new NetworkVariable<int>(0);
+    public int pointsToWin = 3;
+
+    [SerializeField] private Material _firstPlyaerMaterial;
+    [SerializeField] private Material _secondPlyaerMaterial;
 
     public int firstPlayerPoints
     {
@@ -23,10 +27,12 @@ public class Rounds : NetworkBehaviour
             {
                 firstPoints = value;
                 score_1.text = firstPlayerPoints.ToString();
-                if (secondPoints == 3)
+                if (firstPoints == pointsToWin)
                 {
-                    GameOver();
+                    GameOver(0);
                 }
+                else if (firstPoints == 0)
+                    return;
                 else
                     SwitchSides();
             }
@@ -44,10 +50,12 @@ public class Rounds : NetworkBehaviour
             {
                 secondPoints = value;
                 score_2.text = secondPlayerPoints.ToString();
-                if (secondPoints == 3)
+                if (secondPoints == pointsToWin)
                 {
-                    GameOver();
+                    GameOver(1);
                 }
+                else if (secondPoints == 0)
+                    return;
                 else
                     SwitchSides();
             }
@@ -71,9 +79,10 @@ public class Rounds : NetworkBehaviour
 
     private float timeLeft = 4f;
     private bool _countDown = false;
+    public float roundTime = 60f;
     [SerializeField] private TMP_Text _countDownText;
 
-    private float roundTimeLeft = 15f;
+    private float roundTimeLeft = 60f;
     private bool _roundCountDown = false;
     [SerializeField] private TMP_Text _roundcountDownText;
 
@@ -84,6 +93,10 @@ public class Rounds : NetworkBehaviour
         chaser,
         runner
     }
+
+    [SerializeField]private GameManager gameController;
+
+    [SerializeField] private AudioSource backgroundMusic;
 
     private void Start()
     {
@@ -98,13 +111,6 @@ public class Rounds : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         StartCoroutine(loadingTime());
-        GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
-        GameObject myPlayer = null;
-        foreach (var player in tPlayer)
-        {
-            if (player.GetComponent<Owner>() != null)
-                myPlayer = player;
-        }
 
         GameObject chaser = GameObject.Find("Chaser");
         GameObject runner = GameObject.Find("Runner");
@@ -114,7 +120,6 @@ public class Rounds : NetworkBehaviour
         playerID = GetComponent<GameManager>().playerID;
     }
 
-    // change for performance
     private void Update()
     {
         firstPlayerPoints = firstPlyaerPoints.Value;
@@ -187,18 +192,27 @@ public class Rounds : NetworkBehaviour
 
     public void StartTagGame()
     {
+        backgroundMusic.Play();
         GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
         GameObject myPlayer = null;
+        GameObject enemey = null;
         foreach (var player in tPlayer)
         {
             if (player.GetComponent<Owner>() != null)
                 myPlayer = player;
+            else
+                enemey = player;
         }
         if (playerID == 0)
         {
             myPlayer.GetComponent<CharacterController>().enabled = false;
+            myPlayer.GetComponent<NetworkMovement>().flag.SetActive(true);
+            enemey.GetComponent<NetworkMovement>().flag.SetActive(false);
             myPlayer.transform.position = _runnerStartingPoint;
+            myPlayer.transform.GetChild(0).GetComponent<Renderer>().material = _firstPlyaerMaterial;
+            enemey.transform.GetChild(0).GetComponent<Renderer>().material = _secondPlyaerMaterial;
             role1 = playerRole.runner;
+
             _runnerText.enabled = true;
             score_1.fontSize = 72;
             score_2.fontSize = 48;
@@ -207,7 +221,11 @@ public class Rounds : NetworkBehaviour
         else
         {
             myPlayer.GetComponent<CharacterController>().enabled = false;
+            myPlayer.GetComponent<NetworkMovement>().flag.SetActive(false);
+            enemey.GetComponent<NetworkMovement>().flag.SetActive(true);
             myPlayer.transform.position = _chaserStartingPoint;
+            myPlayer.transform.GetChild(0).GetComponent<Renderer>().material = _secondPlyaerMaterial;
+            enemey.transform.GetChild(0).GetComponent<Renderer>().material = _firstPlyaerMaterial;
             role2 = playerRole.chaser;
             _chaserText.enabled = true;
             score_1.fontSize = 48;
@@ -219,12 +237,24 @@ public class Rounds : NetworkBehaviour
         obj.GetComponent<GameManager>().gameHasStarted = true;
     }
 
+    public void Disconnect()
+    {
+        backgroundMusic.Stop();
+        firstPlayerPoints = 0;
+        secondPlayerPoints = 0;
+        score_1.enabled = false;
+        score_2.enabled = false;
+        _countDownText.enabled = false;
+    }
+
     public void SwitchSides()
     {
+        backgroundMusic.Play();
         if (role1 == playerRole.chaser)
         {
             role1 = playerRole.runner;
             role2 = playerRole.chaser;
+
         }
         else
         {
@@ -233,10 +263,13 @@ public class Rounds : NetworkBehaviour
         }
         GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
         GameObject myPlayer = null;
+        GameObject enemey = null;
         foreach (var player in tPlayer)
         {
             if (player.GetComponent<Owner>() != null)
                 myPlayer = player;
+            else
+                enemey = player;
         }
 
         myPlayer.GetComponent<CharacterController>().enabled = false;
@@ -245,19 +278,40 @@ public class Rounds : NetworkBehaviour
         {
             myPlayer.transform.position = _chaserStartingPoint;
             _chaserText.enabled = true;
+            myPlayer.GetComponent<NetworkMovement>().flag.SetActive(false);
+            enemey.GetComponent<NetworkMovement>().flag.SetActive(true);
         }
         else
         {
             myPlayer.transform.position = _runnerStartingPoint;
             _runnerText.enabled = true;
+            myPlayer.GetComponent<NetworkMovement>().flag.SetActive(true);
+            enemey.GetComponent<NetworkMovement>().flag.SetActive(false);
         }
+        timeLeft = 4f;
+        _roundcountDownText.enabled = false;
+        _roundCountDown = false;
+        _countDown = true;
         StartCoroutine(countdown());
     }
 
-    public void GameOver()
+    public void GameOver(int winnderId)
     {
-        _gameOverText.gameObject.SetActive(true);
-        _gameOverText.text = "You've won";
+        _gameOverText.GetComponent<TextMeshProUGUI>().enabled = true;
+        if (winnderId == playerID)
+            _gameOverText.text = "You've won";
+        else
+            _gameOverText.text = "You've lost";
+        score_1.enabled = false;
+        score_2.enabled = false;
+        _countDownText.enabled = false;
+        StartCoroutine(ReturnToMainMenu());
+    }
+
+    IEnumerator ReturnToMainMenu()
+    {
+        yield return new WaitForSecondsRealtime(5f);
+        gameController.Disconnect();
     }
 
 
@@ -273,7 +327,7 @@ public class Rounds : NetworkBehaviour
         var delay = new WaitForSecondsRealtime(3);
         yield return delay;
         _roundCountDown = true;
-        roundTimeLeft = 60f;
+        roundTimeLeft = roundTime;
         _chaserText.enabled = false;
         _runnerText.enabled = false;
         myPlayer.GetComponent<CharacterController>().enabled = true;

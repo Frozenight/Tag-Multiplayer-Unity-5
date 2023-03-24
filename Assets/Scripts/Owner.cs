@@ -7,6 +7,13 @@ public class Owner : NetworkBehaviour
 {
     public override void OnNetworkSpawn()
     {
-        if (!IsOwner) Destroy(this);
+        if (!IsOwner)
+            StartCoroutine(wait());
+    }
+
+    IEnumerator wait()
+    {
+        yield return new WaitForSecondsRealtime(2);
+        Destroy(this);
     }
 }
