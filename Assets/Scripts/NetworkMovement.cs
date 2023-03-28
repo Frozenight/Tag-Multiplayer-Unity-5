@@ -179,6 +179,12 @@ public class NetworkMovement : NetworkBehaviour
 
     public GameObject flag;
 
+    // Variables to store the current rotation of the character controller
+    float currentRotation = 0.0f;
+
+    // Sensitivity of the mouse movement
+    float zippingUpRotationSpeeed = 5f;
+
     private void Start()
     {
         //Cursor.lockState =  CursorLockMode.Locked;
@@ -254,10 +260,39 @@ public class NetworkMovement : NetworkBehaviour
     }
     void ZipUp()
     {
+
+        // Read the horizontal movement of the mouse
+        float mouseX = Input.GetAxis("Horizontal");
+
+        // Calculate the rotation based on the mouse movement
+        float rotationAmount = 0;
+
+        // Mobile
+        if (menu.GetComponent<Menu>().mobile)
+        {
+            Vector2 input = playerInput.actions["Move"].ReadValue<Vector2>();
+
+            rotationAmount += input.x * zippingUpRotationSpeeed;
+        }
+        // PC
+        else
+        {
+            float horizontal = Input.GetAxisRaw("Horizontal");
+
+            rotationAmount += horizontal * zippingUpRotationSpeeed;
+        }
+
+        // Update the current rotation of the character controller
+        currentRotation += rotationAmount;
+
+        // Apply the rotation to the character controller
+        transform.rotation = Quaternion.Euler(0.0f, -currentRotation, 0.0f);
+
         Vector3 moveDir = transform.up;
 
         controller.Move(moveDir.normalized * speed * Time.deltaTime);
     }
+
 
     void RopeFly()
     {
@@ -793,10 +828,8 @@ public class NetworkMovement : NetworkBehaviour
 
     void landSound()
     {
-        Debug.Log(landSoundEffect.isPlaying);
-        //if (!landSoundEffect.isPlaying)
+        if (!landSoundEffect.isPlaying)
             landSoundEffect.Play();
-        Debug.Log(landSoundEffect.isPlaying);
     }
 
     void runSound()

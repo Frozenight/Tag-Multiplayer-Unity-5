@@ -41,6 +41,8 @@ public class Menu : MonoBehaviour
 
     private bool gameIsOn = false;
 
+    [SerializeField] private GameObject touchScreenController;
+
     private void Start()
     {
         GameObject score1 = GameObject.Find("Score_1");
@@ -72,6 +74,11 @@ public class Menu : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         loading_screen.SetActive(true);
         Time.timeScale = 1;
+        if (mobile)
+        {
+            touchScreenController.GetComponent<UIVirtualTouchZone>().TurnOnScreen();
+            touchScreenController.GetComponent<UIVirtualTouchZone>().TurnOffMobileScreen();
+        }
     }
 
     public void Exit_Game()
@@ -191,12 +198,16 @@ public class Menu : MonoBehaviour
     }
     public void Pause_Game()
     {
+        if (mobile)
+            touchScreenController.GetComponent<UIVirtualTouchZone>().TurnOffScreen();
         if (gameIsOn)
             paused_menu.SetActive(true);
     }
 
     public void Continue_Game()
     {
+        if (mobile)
+            touchScreenController.GetComponent<UIVirtualTouchZone>().TurnOnScreen();
         paused_menu.SetActive(false);
         Cursor.lockState = CursorLockMode.Locked;
     }
