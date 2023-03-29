@@ -1204,6 +1204,7 @@ MonoBehaviour:
   cam: {fileID: 0}
   gravity: -9.81
   jumpHeight: 3
+  blastForce: 3000
   groundCheck: {fileID: 7277233841764505801}
   groundDistance: 0.1
   groundMask:
@@ -1216,8 +1217,11 @@ MonoBehaviour:
   turnSmoothTime: 0.1
   networkPlayerState:
     m_InternalValue: 0
-  jumpSoundEffect: {fileID: 6521184148032791}
+  landSoundEffect: {fileID: 0}
+  runningSoundEffect: {fileID: 0}
+  walkingSoundEffect: {fileID: 0}
   flag: {fileID: 5601257431166127940}
+  test_Text: {fileID: 0}
 --- !u!114 &6331559713639531909
 MonoBehaviour:
   m_ObjectHideFlags: 0

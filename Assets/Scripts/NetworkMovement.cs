@@ -31,7 +31,7 @@ public class NetworkMovement : NetworkBehaviour
     public float blastForce = 3000f;
 
     public Transform groundCheck;
-    public float groundDistance = 0.2f;
+    public float groundDistance = 0.3f;
     [SerializeField]
     private LayerMask groundMask;
     [SerializeField]
@@ -260,17 +260,12 @@ public class NetworkMovement : NetworkBehaviour
     }
     void ZipUp()
     {
-
-        // Read the horizontal movement of the mouse
-        float mouseX = Input.GetAxis("Horizontal");
-
-        // Calculate the rotation based on the mouse movement
         float rotationAmount = 0;
 
         // Mobile
         if (menu.GetComponent<Menu>().mobile)
         {
-            Vector2 input = playerInput.actions["Move"].ReadValue<Vector2>();
+            Vector2 input = playerInput.actions["Move"].ReadValue<Vector2>().normalized;
 
             rotationAmount += input.x * zippingUpRotationSpeeed;
         }
@@ -282,14 +277,10 @@ public class NetworkMovement : NetworkBehaviour
             rotationAmount += horizontal * zippingUpRotationSpeeed;
         }
 
-        // Update the current rotation of the character controller
         currentRotation += rotationAmount;
-
-        // Apply the rotation to the character controller
         transform.rotation = Quaternion.Euler(0.0f, -currentRotation, 0.0f);
 
         Vector3 moveDir = transform.up;
-
         controller.Move(moveDir.normalized * speed * Time.deltaTime);
     }
 
@@ -304,9 +295,18 @@ public class NetworkMovement : NetworkBehaviour
         controller.Move(moveDir.normalized * 12 * Time.deltaTime);
 
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        if (menu.GetComponent<Menu>().mobile)
+        {
+            RaycastHit hit;
+            if (Physics.Raycast(groundCheck.position, transform.TransformDirection(-Vector3.up), out hit, 2, groundMask))
+                ropeFly = false;
+        }
+        else
+        {
+            if (isGrounded)
+                ropeFly = false;
+        }
 
-        if (isGrounded)
-            ropeFly = false;
     }
 
     void Client_CheckForRope()
@@ -345,6 +345,7 @@ public class NetworkMovement : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+
         if (other.gameObject.CompareTag("Rope"))
         {
             canZipUp = true;

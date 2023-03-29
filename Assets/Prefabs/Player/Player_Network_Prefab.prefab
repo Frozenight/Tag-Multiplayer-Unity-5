@@ -1224,6 +1224,7 @@ MonoBehaviour:
   runningSoundEffect: {fileID: -3433943891161135839}
   walkingSoundEffect: {fileID: 8240349692446881544}
   flag: {fileID: 8526933305882579555}
+  test_Text: {fileID: 0}
 --- !u!114 &6331559713639531909
 MonoBehaviour:
   m_ObjectHideFlags: 0

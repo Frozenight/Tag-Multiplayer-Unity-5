@@ -76,6 +76,7 @@ public class Menu : MonoBehaviour
         Time.timeScale = 1;
         if (mobile)
         {
+            touchScreenController.SetActive(true);
             touchScreenController.GetComponent<UIVirtualTouchZone>().TurnOnScreen();
             touchScreenController.GetComponent<UIVirtualTouchZone>().TurnOffMobileScreen();
         }
