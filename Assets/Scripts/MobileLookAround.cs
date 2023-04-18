@@ -18,8 +18,6 @@ public class MobileLookAround : MonoBehaviour
 
     private float GetInputAxis(string axisName)
     {
-        //_lookInput = _touchInput.PlayerJoystickOutputVector();
-
         if (axisName == _touchXMapTo)
             return _lookInput.x / _touchSpeedSensitivityX;
 

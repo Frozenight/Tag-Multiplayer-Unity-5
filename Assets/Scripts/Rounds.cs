@@ -8,8 +8,8 @@ public class Rounds : NetworkBehaviour
 {
     private int playerID = -1;
 
-    private Vector3 _chaserStartingPoint = new Vector3(15, 0.53f, -14);
-    private Vector3 _runnerStartingPoint = new Vector3(-15, 0.53f, 10);
+    private Vector3 _chaserStartingPoint = new Vector3(28, 0.53f, -20);
+    private Vector3 _runnerStartingPoint = new Vector3(-17, 0.53f, -4);
 
     public NetworkVariable<int> firstPlyaerPoints = new NetworkVariable<int>(0);
     public NetworkVariable<int> secondPlyaerPoints = new NetworkVariable<int>(0);

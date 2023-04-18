@@ -42,8 +42,6 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
     public void TurnOffScreen()
     {
         GetComponent<Image>().raycastTarget = false;
-        cineCam.m_XAxis.Value = 0;
-        cineCam.m_YAxis.Value = 0;
     }
 
     public void TurnOffMobileScreen()
@@ -52,20 +50,6 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
         cineCam.m_YAxis.m_InputAxisName = null;
     }
 
-    private void Update()
-    {
-        if (!GetComponent<Image>().raycastTarget)
-        {
-            if (cineCam.m_XAxis.Value != 0)
-            {
-                cineCam.m_XAxis.Value = 0;
-            }
-            if (cineCam.m_YAxis.Value != 0)
-            {
-                cineCam.m_YAxis.Value = 0;
-            }
-        }
-    }
 
     private void SetupHandle()
     {
