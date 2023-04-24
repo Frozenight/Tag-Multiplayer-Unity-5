@@ -54,6 +54,8 @@ public class NetworkMovement : NetworkBehaviour
     bool readyToClimbOnTheWallTop = false;
     bool isZipping = false;
     bool ropeFly = false;
+    bool isDodgingRight = false;
+    bool isDodgingLeft = false;
 
     public float turnSmoothTime = 0.9f;
     Vector3 velocity;
@@ -142,6 +144,7 @@ public class NetworkMovement : NetworkBehaviour
     private bool isJumpAvalable;
     private float jumpCooldown = 0.5f;
     private bool canJump = true;
+    private bool canDodge = true;
     private bool isJumping;
 
     public static Vector3 respawn_point = new Vector3(2, 3, -1);
@@ -171,7 +174,9 @@ public class NetworkMovement : NetworkBehaviour
         isClimbingWall,
         isFallingOfTheWall,
         isClimbingOnTopOfTheWall,
-        isZippingUp
+        isZippingUp,
+        isDodgingRight,
+        isDodgingLeft
     }
     [SerializeField] private AudioSource landSoundEffect;
     [SerializeField] private AudioSource runningSoundEffect;
@@ -345,7 +350,6 @@ public class NetworkMovement : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-
         if (other.gameObject.CompareTag("Rope"))
         {
             canZipUp = true;
@@ -411,6 +415,15 @@ public class NetworkMovement : NetworkBehaviour
         if (Input.GetButtonUp("Jump") && isGrounded)
         {
             Jump();
+        }
+        // Dodge
+        if (Input.GetKey(KeyCode.Q) && isGrounded)
+        {
+            Dodge(true);
+        }
+        if (Input.GetKey(KeyCode.E) && isGrounded)
+        {
+            Dodge(false);
         }
         Vector3 direction = new Vector3(0, 0, 0);
         // Mobile
@@ -499,6 +512,53 @@ public class NetworkMovement : NetworkBehaviour
                 jumpButtonImage.enabled = true;
                 jumpText.enabled = true;
             }
+        }
+    }
+
+    void Dodge(bool right)
+    {
+        if (right)
+        {
+
+            StartCoroutine(dodgeMove(3f, false));
+        }
+        else
+        {
+            StartCoroutine(dodgeMove(3f, true));
+        }
+    }
+
+    IEnumerator dodgeMove(float amount, bool left)
+    {
+        if (canDodge)
+        {
+            if (left)
+            {
+                isDodgingLeft = true;
+            }
+            else
+            {
+                isDodgingRight = true;
+            }
+            canDodge = false;
+            float time = 0f;
+            float duration = 0.5f;
+            while (time < duration)
+            {
+                float t = time / duration;
+                float speed = (1 - t) * amount * amount * amount;
+                if (left)
+                    controller.Move(transform.right * speed * Time.deltaTime);
+                else
+                    controller.Move(-transform.right * speed * Time.deltaTime);
+                time += Time.deltaTime;
+                yield return null;
+            }
+
+            isDodgingRight = false;
+            isDodgingLeft = false;
+            yield return new WaitForSeconds(3f);
+            canDodge = true;
         }
     }
 
@@ -669,6 +729,10 @@ public class NetworkMovement : NetworkBehaviour
             UpdatePlayerStateServerRpc(PlayerState.isClimbingOnTopOfTheWall);
         if (isZippingUp)
             UpdatePlayerStateServerRpc(PlayerState.isZippingUp);
+        if (isDodgingRight)
+            UpdatePlayerStateServerRpc(PlayerState.isDodgingRight);
+        if (isDodgingLeft)
+            UpdatePlayerStateServerRpc(PlayerState.isDodgingLeft);
     }
 
     [ServerRpc]
@@ -689,6 +753,16 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
             m_Animator.SetBool("isZippingUp", false);
+            m_Animator.SetBool("dodgeRight", false);
+            m_Animator.SetBool("dodgeLeft", false);
+        }
+        else if (networkPlayerState.Value == PlayerState.isDodgingRight)
+        {
+            m_Animator.SetBool("dodgeRight", true);
+        }
+        else if (networkPlayerState.Value == PlayerState.isDodgingLeft)
+        {
+            m_Animator.SetBool("dodgeLeft", true);
         }
         else if (networkPlayerState.Value == PlayerState.isRunning)
         {
@@ -700,6 +774,8 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
             m_Animator.SetBool("isZippingUp", false);
+            m_Animator.SetBool("dodgeRight", false);
+            m_Animator.SetBool("dodgeLeft", false);
         }
         else if (networkPlayerState.Value == PlayerState.isIdle)
         {
@@ -710,6 +786,8 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isWallClimbing", false);
             m_Animator.SetBool("isFallingOfTheWall", false);
             m_Animator.SetBool("isZippingUp", false);
+            m_Animator.SetBool("dodgeRight", false);
+            m_Animator.SetBool("dodgeLeft", false);
         }
         else if (networkPlayerState.Value == PlayerState.isJumping)
         {
@@ -821,6 +899,7 @@ public class NetworkMovement : NetworkBehaviour
         else
             speed = walkingSpeed;
     }
+
 
     void jumpUpSound()
     {
