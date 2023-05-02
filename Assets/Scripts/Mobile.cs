@@ -29,6 +29,30 @@ public class Mobile : MonoBehaviour
         myPlayer.GetComponent<NetworkMovement>().Jump();
     }
 
+    public void DashLeft()
+    {
+        GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
+        GameObject myPlayer = null;
+        foreach (var player in tPlayer)
+        {
+            if (player.GetComponent<Owner>() != null)
+                myPlayer = player;
+        }
+        myPlayer.GetComponent<NetworkMovement>().Dodge(true);
+    }
+
+    public void DashRight()
+    {
+        GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
+        GameObject myPlayer = null;
+        foreach (var player in tPlayer)
+        {
+            if (player.GetComponent<Owner>() != null)
+                myPlayer = player;
+        }
+        myPlayer.GetComponent<NetworkMovement>().Dodge(false);
+    }
+
     public void Sprint()
     {
         if (!sprinting)

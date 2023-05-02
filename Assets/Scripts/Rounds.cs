@@ -8,8 +8,8 @@ public class Rounds : NetworkBehaviour
 {
     private int playerID = -1;
 
-    private Vector3 _chaserStartingPoint = new Vector3(28, 0.53f, -20);
-    private Vector3 _runnerStartingPoint = new Vector3(-17, 0.53f, -4);
+    private Vector3 _chaserStartingPoint = new Vector3(-32.17f, 8.44f, -7.38f);
+    private Vector3 _runnerStartingPoint = new Vector3(44.011f, 8.44f, -7.38f);
 
     public NetworkVariable<int> firstPlyaerPoints = new NetworkVariable<int>(0);
     public NetworkVariable<int> secondPlyaerPoints = new NetworkVariable<int>(0);
@@ -202,6 +202,7 @@ public class Rounds : NetworkBehaviour
                 myPlayer = player;
             else
                 enemey = player;
+            player.GetComponent<NetworkMovement>().ResetActions();
         }
         if (playerID == 0)
         {
@@ -270,6 +271,7 @@ public class Rounds : NetworkBehaviour
                 myPlayer = player;
             else
                 enemey = player;
+            player.GetComponent<NetworkMovement>().ResetActions();
         }
 
         myPlayer.GetComponent<CharacterController>().enabled = false;
@@ -297,6 +299,8 @@ public class Rounds : NetworkBehaviour
 
     public void GameOver(int winnderId)
     {
+        Debug.Log(winnderId + " winnderId");
+        Debug.Log(playerID + " playerId");
         _gameOverText.GetComponent<TextMeshProUGUI>().enabled = true;
         if (winnderId == playerID)
             _gameOverText.text = "You've won";

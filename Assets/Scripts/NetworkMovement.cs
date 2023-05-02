@@ -190,6 +190,11 @@ public class NetworkMovement : NetworkBehaviour
     // Sensitivity of the mouse movement
     float zippingUpRotationSpeeed = 5f;
 
+    [SerializeField] private Image leftslideImage;
+    [SerializeField] private Image rightslideImage;
+    [SerializeField] private Image leftslideImagePC;
+    [SerializeField] private Image rightslideImagePC;
+
     private void Start()
     {
         //Cursor.lockState =  CursorLockMode.Locked;
@@ -210,6 +215,16 @@ public class NetworkMovement : NetworkBehaviour
         jumpButton = jump.GetComponent<Button>();
         jumpButtonImage = jump.GetComponent<Image>();
         GameObject text = GameObject.Find("JumpText");
+
+        GameObject slideleft = GameObject.Find("SlideLeftButton");
+        if (slideleft == null)
+            slideleft = GameObject.Find("SlideLeftButtonPC");
+        leftslideImage = slideleft.GetComponent<Image>();
+
+        GameObject slideright = GameObject.Find("SlideRightButton");
+        if (slideright == null)
+            slideright = GameObject.Find("SlideRightButtonPC");
+        rightslideImage = slideright.GetComponent<Image>();
 
         jumpText = text.GetComponent<TMP_Text>();
         jumpButton.enabled = false;
@@ -244,6 +259,26 @@ public class NetworkMovement : NetworkBehaviour
             SetVisualsOfTheClientToTheServer();
         }
         ClientVisuals();
+    }
+
+    public void ResetActions()
+    {
+        climbUpTheWall = false;
+        climbingWall = false;
+        isOnWall = false;
+        isZippingUp = false;
+        ropeFly = false;
+        running = false;
+        walking = false;
+        falling = false;
+        jumping = false;
+        onWall = false;
+        canClimb = false;
+        fallingFromTheWall = false;
+        readyToClimbOnTheWallTop = false;
+        isZipping = false;
+        isDodgingRight = false;
+        isDodgingLeft = false;
     }
 
     void ClientCursor()
@@ -303,7 +338,7 @@ public class NetworkMovement : NetworkBehaviour
         if (menu.GetComponent<Menu>().mobile)
         {
             RaycastHit hit;
-            if (Physics.Raycast(groundCheck.position, transform.TransformDirection(-Vector3.up), out hit, 2, groundMask))
+            if (Physics.Raycast(groundCheck.position, transform.TransformDirection(-Vector3.up), out hit, 0.5f, groundMask))
                 ropeFly = false;
         }
         else
@@ -515,7 +550,7 @@ public class NetworkMovement : NetworkBehaviour
         }
     }
 
-    void Dodge(bool right)
+    public void Dodge(bool right)
     {
         if (right)
         {
@@ -532,6 +567,8 @@ public class NetworkMovement : NetworkBehaviour
     {
         if (canDodge)
         {
+            leftslideImage.fillAmount = 0f;
+            rightslideImage.fillAmount = 0f;
             if (left)
             {
                 isDodgingLeft = true;
@@ -557,7 +594,23 @@ public class NetworkMovement : NetworkBehaviour
 
             isDodgingRight = false;
             isDodgingLeft = false;
-            yield return new WaitForSeconds(3f);
+            // Add cooldown logic here
+            if (leftslideImage != null)
+            {
+                leftslideImage.fillAmount = 0f;
+                float cooldownDuration = 25f;
+                float cooldownTime = 0f;
+                while (cooldownTime < cooldownDuration)
+                {
+                    float t = cooldownTime / cooldownDuration;
+                    leftslideImage.fillAmount = t;
+                    rightslideImage.fillAmount = t;
+                    cooldownTime += Time.deltaTime;
+                    yield return null;
+                }
+                leftslideImage.fillAmount = 1f;
+                rightslideImage.fillAmount = 1f;
+            }
             canDodge = true;
         }
     }
@@ -748,6 +801,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isWalking", true);
             m_Animator.SetBool("isRunning", false);
             m_Animator.SetBool("isFalling", false);
+            m_Animator.SetBool("isJumping", false);
             m_Animator.SetBool("isGrounded", true);
             m_Animator.SetBool("isFallingOfTheWall", false);
             m_Animator.SetBool("isOnWall", false);
@@ -769,6 +823,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isRunning", true);
             m_Animator.SetBool("isWalking", false);
             m_Animator.SetBool("isFalling", false);
+            m_Animator.SetBool("isJumping", false);
             m_Animator.SetBool("isGrounded", true);
             m_Animator.SetBool("isFallingOfTheWall", false);
             m_Animator.SetBool("isOnWall", false);
@@ -784,6 +839,7 @@ public class NetworkMovement : NetworkBehaviour
             m_Animator.SetBool("isGrounded", true);
             m_Animator.SetBool("isOnWall", false);
             m_Animator.SetBool("isWallClimbing", false);
+            m_Animator.SetBool("isJumping", false);
             m_Animator.SetBool("isFallingOfTheWall", false);
             m_Animator.SetBool("isZippingUp", false);
             m_Animator.SetBool("dodgeRight", false);

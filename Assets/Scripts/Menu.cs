@@ -27,6 +27,10 @@ public class Menu : MonoBehaviour
     [SerializeField] private Button pause_button;
     [SerializeField] private Button jump_button;
     [SerializeField] private Button sprint_button;
+    [SerializeField] private Button dashleft_button;
+    [SerializeField] private Button dashright_button;
+    [SerializeField] private Button dashleft_buttonPC;
+    [SerializeField] private Button dashright_buttonPC;
 
     public TMP_InputField input_ipAdress;
     public TMP_Text host_IPadress_textbox;
@@ -133,10 +137,18 @@ public class Menu : MonoBehaviour
     {
         if (mobile)
         {
+            dashleft_button.gameObject.SetActive(true);
+            dashright_button.gameObject.SetActive(true);
             pause_button.gameObject.SetActive(true);
+            jump_button.gameObject.SetActive(true);
             jump_button.gameObject.SetActive(true);
             sprint_button.gameObject.SetActive(true);
             joystick.SetActive(true);
+        }
+        else
+        {
+            dashleft_buttonPC.gameObject.SetActive(true);
+            dashright_buttonPC.gameObject.SetActive(true);
         }
         score_1.enabled = true;
         score_2.enabled = true;

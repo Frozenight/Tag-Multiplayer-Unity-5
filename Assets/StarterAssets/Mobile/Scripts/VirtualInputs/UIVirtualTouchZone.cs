@@ -30,8 +30,13 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
     [Header("Output")]
     public Event touchZoneOutputEvent;
 
+    private float FinalValueY = 0;
+    private float FinalValueX = 0;
+
     void Start()
     {
+        FinalValueX = cineCam.m_XAxis.Value;
+        FinalValueY = cineCam.m_YAxis.Value;
         SetupHandle();
     }
 
@@ -61,7 +66,10 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
 
     public void OnPointerDown(PointerEventData eventData)
     {
-
+        if (FinalValueX != cineCam.m_XAxis.Value)
+            cineCam.m_XAxis.Value = FinalValueX;
+        if (FinalValueY != cineCam.m_YAxis.Value)
+            cineCam.m_YAxis.Value = FinalValueY;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(containerRect, eventData.position, eventData.pressEventCamera, out pointerDownPosition);
 
         if(handleRect)
@@ -97,6 +105,8 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
             SetObjectActiveState(handleRect.gameObject, false);
             UpdateHandleRectPosition(Vector2.zero);
         }
+        FinalValueX = cineCam.m_XAxis.Value;
+        FinalValueY = cineCam.m_YAxis.Value;
     }
 
     void OutputPointerEventValue(Vector2 pointerPosition)
