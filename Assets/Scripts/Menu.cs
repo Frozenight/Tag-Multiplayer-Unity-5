@@ -17,6 +17,7 @@ public class Menu : MonoBehaviour
     [SerializeField] private GameObject settings_menu;
     [SerializeField] private GameObject connection_menu;
     [SerializeField] private GameObject paused_menu;
+    [SerializeField] private GameObject score_menu;
     [SerializeField] private Toggle mobile_toggle;
     [SerializeField] private TMP_Dropdown screenMode_dropdown;
     [SerializeField] private TMP_Dropdown difficulty_dropdown;
@@ -46,6 +47,7 @@ public class Menu : MonoBehaviour
     private bool gameIsOn = false;
 
     [SerializeField] private GameObject touchScreenController;
+
 
     private void Start()
     {
@@ -101,6 +103,17 @@ public class Menu : MonoBehaviour
     {
         menu.SetActive(true);
         settings_menu.SetActive(false);
+    }
+
+    public void Open_Scores()
+    {
+        SceneManager.LoadScene("ScorePreview");
+    }
+
+    public void Close_Scores()
+    {
+        menu.SetActive(true);
+        score_menu.SetActive(false);
     }
 
     public void Close_GameSelection()

@@ -20,13 +20,24 @@ public class Invisibility : MonoBehaviour
     {
         canGoInvis = false;
         skinRenderer.enabled = false;
-        GetComponent<MeshRenderer>().enabled = false;
-        transform.GetChild(0).gameObject.SetActive(false);
+        int i = -1;
+        if (transform.GetChild(0).gameObject.activeSelf)
+        {
+            transform.GetChild(0).gameObject.SetActive(false);
+            i = 0;
+            Debug.Log(i);
+        }
+
+        else
+        {
+            transform.GetChild(1).gameObject.SetActive(false);
+            i = 1;
+            Debug.Log(i);
+        }
         yield return new WaitForSeconds(invisTime);
         skinRenderer.enabled = true;
         yield return new WaitForSeconds(invisCooldown);
-        GetComponent<MeshRenderer>().enabled = true;
-        transform.GetChild(0).gameObject.SetActive(true);
+        transform.GetChild(i).gameObject.SetActive(true);
         canGoInvis = true;
     }
 }

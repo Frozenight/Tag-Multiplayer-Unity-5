@@ -1064,7 +1064,6 @@ GameObject:
   - component: {fileID: 4032027176975082957}
   - component: {fileID: 6331559713639531909}
   - component: {fileID: 6972492566271887649}
-  - component: {fileID: 8003016362141290043}
   - component: {fileID: 3140560696618365977}
   - component: {fileID: 5275825422720385475}
   - component: {fileID: 8240349692446881544}
@@ -1224,7 +1223,10 @@ MonoBehaviour:
   runningSoundEffect: {fileID: -3433943891161135839}
   walkingSoundEffect: {fileID: 8240349692446881544}
   flag: {fileID: 8526933305882579555}
-  test_Text: {fileID: 0}
+  leftslideImage: {fileID: 0}
+  rightslideImage: {fileID: 0}
+  leftslideImagePC: {fileID: 0}
+  rightslideImagePC: {fileID: 0}
 --- !u!114 &6331559713639531909
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1247,18 +1249,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8117b6cb831370443b8b3ff34479f6b8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &8003016362141290043
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4312466316366372539}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a91545770ecf23b45a85e82b58665104, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!114 &3140560696618365977

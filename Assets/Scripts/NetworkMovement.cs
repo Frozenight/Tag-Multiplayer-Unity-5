@@ -503,6 +503,7 @@ public class NetworkMovement : NetworkBehaviour
         {
             running = false;
             walking = false;
+            stopOtherSounds("Jump");
         }
     }
 
@@ -903,11 +904,11 @@ public class NetworkMovement : NetworkBehaviour
         }
     }
 
-    public void Jump()
+    public void Jump(int jumpMultiplier = 1)
     {
         if (!isGrounded || !canJump)
             return;
-        velocity.y = Mathf.Sqrt(-jumpHeight * gravity);
+        velocity.y = Mathf.Sqrt(-jumpHeight * gravity * jumpMultiplier);
         jumping = true;
         isJumping = true;
     }
@@ -966,37 +967,40 @@ public class NetworkMovement : NetworkBehaviour
     {
         if (!landSoundEffect.isPlaying)
             landSoundEffect.Play();
+        stopOtherSounds("Land");
     }
 
     void runSound()
     {
         if (!runningSoundEffect.isPlaying)
             runningSoundEffect.Play();
-        if (walkingSoundEffect.isPlaying)
-            walkingSoundEffect.Stop();
+        stopOtherSounds("Run");
     }
     
     void idleSound()
     {
-        if (runningSoundEffect.isPlaying)
-            runningSoundEffect.Stop();
-        if (walkingSoundEffect.isPlaying)
-            walkingSoundEffect.Stop();
+        stopOtherSounds("Idle");
     }
 
     void walkingSound()
     {
         if (!walkingSoundEffect.isPlaying)
             walkingSoundEffect.Play();
-        if (runningSoundEffect.isPlaying)
-            runningSoundEffect.Stop();
+        stopOtherSounds("Walk");
     }
 
     void isFallingSound()
     {
-        if (runningSoundEffect.isPlaying)
+        stopOtherSounds("Fall");
+    }
+
+    void stopOtherSounds(string soundToPlay)
+    {
+        if (soundToPlay != "Run")
             runningSoundEffect.Stop();
-        if (walkingSoundEffect.isPlaying)
+        if (soundToPlay != "Walk")
             walkingSoundEffect.Stop();
+        if (soundToPlay != "Land")
+            landSoundEffect.Stop();
     }
 }

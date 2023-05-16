@@ -33,6 +33,8 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
     private float FinalValueY = 0;
     private float FinalValueX = 0;
 
+    private bool canDrag = false;
+
     void Start()
     {
         FinalValueX = cineCam.m_XAxis.Value;
@@ -74,6 +76,7 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
 
         if(handleRect)
         {
+            canDrag = true;
             SetObjectActiveState(handleRect.gameObject, true);
             UpdateHandleRectPosition(pointerDownPosition);
         }
@@ -102,6 +105,7 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
 
         if(handleRect)
         {
+            canDrag = false;
             SetObjectActiveState(handleRect.gameObject, false);
             UpdateHandleRectPosition(Vector2.zero);
         }
@@ -111,6 +115,8 @@ public class UIVirtualTouchZone : MonoBehaviour, IPointerDownHandler, IDragHandl
 
     void OutputPointerEventValue(Vector2 pointerPosition)
     {
+        if (!canDrag)
+            return;
         cineCam.m_XAxis.Value += pointerPosition.x * 200 * SenstivityX * Time.deltaTime;
         cineCam.m_YAxis.Value += pointerPosition.y * SenstivityY * Time.deltaTime;
     }

@@ -1,102 +1,76 @@
-﻿/*
-    ██████╗░██╗░░░░░░█████╗░░██████╗███╗░░░███╗░█████╗░  ░██████╗██╗░░██╗░█████╗░██████╗░███████╗██████╗░
-    ██╔══██╗██║░░░░░██╔══██╗██╔════╝████╗░████║██╔══██╗  ██╔════╝██║░░██║██╔══██╗██╔══██╗██╔════╝██╔══██╗
-    ██████╔╝██║░░░░░███████║╚█████╗░██╔████╔██║███████║  ╚█████╗░███████║███████║██║░░██║█████╗░░██████╔╝
-    ██╔═══╝░██║░░░░░██╔══██║░╚═══██╗██║╚██╔╝██║██╔══██║  ░╚═══██╗██╔══██║██╔══██║██║░░██║██╔══╝░░██╔══██╗
-    ██║░░░░░███████╗██║░░██║██████╔╝██║░╚═╝░██║██║░░██║  ██████╔╝██║░░██║██║░░██║██████╔╝███████╗██║░░██║
-    ╚═╝░░░░░╚══════╝╚═╝░░╚═╝╚═════╝░╚═╝░░░░░╚═╝╚═╝░░╚═╝  ╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═════╝░╚══════╝╚═╝░░╚═╝
-
-                █▀▀▄ █──█ 　 ▀▀█▀▀ █──█ █▀▀ 　 ░█▀▀▄ █▀▀ ▀█─█▀ █▀▀ █── █▀▀█ █▀▀█ █▀▀ █▀▀█ 
-                █▀▀▄ █▄▄█ 　 ─░█── █▀▀█ █▀▀ 　 ░█─░█ █▀▀ ─█▄█─ █▀▀ █── █──█ █──█ █▀▀ █▄▄▀ 
-                ▀▀▀─ ▄▄▄█ 　 ─░█── ▀──▀ ▀▀▀ 　 ░█▄▄▀ ▀▀▀ ──▀── ▀▀▀ ▀▀▀ ▀▀▀▀ █▀▀▀ ▀▀▀ ▀─▀▀
-____________________________________________________________________________________________________________________________________________
-
-        ▄▀█ █▀ █▀ █▀▀ ▀█▀ ▀   █░█ █░░ ▀█▀ █ █▀▄▀█ ▄▀█ ▀█▀ █▀▀   ▄█ █▀█ ▄█▄   █▀ █░█ ▄▀█ █▀▄ █▀▀ █▀█ █▀
-        █▀█ ▄█ ▄█ ██▄ ░█░ ▄   █▄█ █▄▄ ░█░ █ █░▀░█ █▀█ ░█░ ██▄   ░█ █▄█ ░▀░   ▄█ █▀█ █▀█ █▄▀ ██▄ █▀▄ ▄█
-____________________________________________________________________________________________________________________________________________
-License:
-    The license is ATTRIBUTION 3.0
-
-    More license info here:
-        https://creativecommons.org/licenses/by/3.0/
-____________________________________________________________________________________________________________________________________________
-This shader has NOT been tested on any other PC configuration except the following:
-    CPU: Intel Core i5-6400
-    GPU: NVidia GTX 750Ti
-    RAM: 16GB
-    Windows: 10 x64
-    DirectX: 11
-____________________________________________________________________________________________________________________________________________
-*/
-
-Shader "Ultimate 10+ Shaders/Plasma"
-{
-    Properties
-    {
-        [HDR] _Color ("Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
+﻿Shader "Ultimate 10+ Shaders/Plasma" {
+    Properties{
+        [HDR] _Color("Color", Color) = (1, 1, 1, 1)
+        _MainTex("Albedo (RGB)", 2D) = "white" {}
         _Normal("Normal map", 2D) = "bump" {}
 
-        _NoiseTex ("Noise", 2D) = "white" {}
-        _MovementDirection ("Movement Direction", float) = (0, -1, 0, 1)
-        
-        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
+        _NoiseTex("Noise", 2D) = "white" {}
+        _MovementDirection("Movement Direction", Vector) = (0, -1, 0, 1)
+
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull", Float) = 2
     }
-    SubShader
-    {
-        Tags{ "RenderType"="Transparent" "Queue"="Transparent"}
-		Blend SrcAlpha OneMinusSrcAlpha
-        LOD 100
-        Cull [_Cull]
-        Lighting Off
-        ZWrite On
-        
-        CGPROGRAM
-        // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf Standard fullforwardshadows alpha
 
-        // Use shader model 3.0 target, to get nicer looking lighting
-        #pragma target 3.0
+        SubShader{
+            Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
+            Blend SrcAlpha OneMinusSrcAlpha
+            LOD 100
+            Cull[_Cull]
+            ZWrite On
 
-        sampler2D _MainTex;
-        sampler2D _Normal;
-        sampler2D _NoiseTex;
+            HLSLPROGRAM
+            // Required for URP
+            #pragma target 4.5
+            #pragma only_renderers d3d11 playstation xboxone vulkan metal switch
 
-        half2 _MovementDirection;
+            // URP specific include
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-        struct Input
-        {
-            float2 uv_MainTex;
-            float2 uv_Normal;
-            float2 uv_NoiseTex;
-        };
+            struct Attributes {
+                float3 positionOS : POSITION;
+                float2 uv_MainTex : TEXCOORD0;
+                float2 uv_Normal : TEXCOORD1;
+                float2 uv_NoiseTex : TEXCOORD2;
+            };
 
-        fixed4 _Color;
+            struct Varyings {
+                float2 uv_MainTex : TEXCOORD0;
+                float2 uv_Normal : TEXCOORD1;
+                float2 uv_NoiseTex : TEXCOORD2;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
 
-        // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
-        // See https://docs.unity3d.com/Manual/GPUInstancing.html for more information about instancing.
-        // #pragma instancing_options assumeuniformscaling
-        UNITY_INSTANCING_BUFFER_START(Props)
-            // put more per-instance properties here
-        UNITY_INSTANCING_BUFFER_END(Props)
+            sampler2D _MainTex;
+            sampler2D _Normal;
+            sampler2D _NoiseTex;
+            float4 _MovementDirection;
 
-        fixed4 pixel, alphaPixel;
-        void surf (Input IN, inout SurfaceOutputStandard o)
-        {
-            IN.uv_NoiseTex += _MovementDirection * _Time.y / 2.0;
-            IN.uv_MainTex += _MovementDirection * _Time.y;
-            IN.uv_Normal += _MovementDirection * _Time.y / 2.0;
+            fixed4 _Color;
 
-            alphaPixel = tex2D (_NoiseTex, IN.uv_NoiseTex);
-            
-            pixel = tex2D (_MainTex, IN.uv_MainTex) * _Color * alphaPixel.r;
-            o.Albedo = pixel.rgb;
+            Varyings vert(Attributes input) {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
-            o.Normal = tex2D(_Normal, IN.uv_Normal);
-            
-            o.Alpha = alphaPixel.r;
+                output.uv_MainTex = input.uv_MainTex;
+                output.uv_Normal = input.uv_Normal;
+                output.uv_NoiseTex = input.uv_NoiseTex;
+
+                return output;
+            }
+
+            half4 frag(Varyings input) : SV_Target {
+                input.uv_NoiseTex += _MovementDirection.xy * _Time.y / 2.0;
+                input.uv_MainTex += _MovementDirection.xy * _Time.y;
+                input.uv_Normal += _MovementDirection.xy * _Time.y / 2.0;
+
+                half4 alphaPixel = tex2D(_NoiseTex, input.uv_NoiseTex);
+                half4 pixel = tex2D(_MainTex, input.uv_MainTex) * _Color * alphaPixel.r;
+
+                half3 normal = UnpackNormal(tex2D(_Normal, input.uv_Normal));
+
+                // Use URP provided Blend modes and premultiply alpha
+                half4 finalColor = PremultiplyAlpha(half4(pixel.rgb, alphaPixel.r));
+                return finalColor;
+            }
         }
-        ENDCG
-    }
-    FallBack "Diffuse"
-}

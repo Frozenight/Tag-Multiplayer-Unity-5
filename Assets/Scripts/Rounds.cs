@@ -8,8 +8,8 @@ public class Rounds : NetworkBehaviour
 {
     private int playerID = -1;
 
-    private Vector3 _chaserStartingPoint = new Vector3(-32.17f, 8.44f, -7.38f);
-    private Vector3 _runnerStartingPoint = new Vector3(44.011f, 8.44f, -7.38f);
+    private Vector3 _chaserStartingPoint = new Vector3(-32.17f, 8.44f, -7.0f);
+    private Vector3 _runnerStartingPoint = new Vector3(44.011f, 8.44f, -7.0f);
 
     public NetworkVariable<int> firstPlyaerPoints = new NetworkVariable<int>(0);
     public NetworkVariable<int> secondPlyaerPoints = new NetworkVariable<int>(0);
@@ -79,13 +79,13 @@ public class Rounds : NetworkBehaviour
 
     private float timeLeft = 4f;
     private bool _countDown = false;
-    public float roundTime = 60f;
+    public float roundTime = 10f;
     [SerializeField] private TMP_Text _countDownText;
 
-    private float roundTimeLeft = 60f;
+    private float roundTimeLeft = 10f;
     private bool _roundCountDown = false;
     [SerializeField] private TMP_Text _roundcountDownText;
-
+    [SerializeField] private TMP_Text _catchTimer;
     [SerializeField] private TMP_Text _gameOverText;
 
     private enum playerRole
@@ -97,6 +97,12 @@ public class Rounds : NetworkBehaviour
     [SerializeField]private GameManager gameController;
 
     [SerializeField] private AudioSource backgroundMusic;
+    [SerializeField] private TMP_Text _catchTimerText;
+
+    private GameObject myPlayer;
+    private GameObject enemyPlayer;
+    private float safeDistance = 10f;
+    private float catchTimer = 5f;
 
     private void Start()
     {
@@ -147,6 +153,42 @@ public class Rounds : NetworkBehaviour
                 _roundCountDown = false;
                 _roundcountDownText.enabled = false;
                 timerRanOutServerRpc();
+            }
+
+            if (myPlayer == null || enemyPlayer == null)
+            {
+                GameObject[] tPlayer = GameObject.FindGameObjectsWithTag("Player");
+                foreach (var player in tPlayer)
+                {
+                    if (player.GetComponent<Owner>() != null)
+                        myPlayer = player;
+                    else
+                        enemyPlayer = player;
+                }
+            }
+
+            if (Vector3.Distance(myPlayer.transform.position, enemyPlayer.transform.position) < safeDistance)
+            {
+                if (role1 == playerRole.runner)
+                    _catchTimerText.text = "You're almost caught! Keep running!";
+                else
+                    _catchTimerText.text = "Don't let the runner get away!";
+                catchTimer -= Time.deltaTime;
+                _catchTimer.text = catchTimer.ToString("0");
+                float scale = Mathf.Lerp(0.8f, 1.2f, Mathf.PingPong(catchTimer, 1f));
+                _catchTimer.transform.localScale = new Vector3(scale, scale, scale);
+            }
+            else
+            {
+                _catchTimer.text = string.Empty;
+                _catchTimerText.text = string.Empty;
+                catchTimer = 5f;
+                _catchTimer.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
+            }
+
+            if (catchTimer <= 0)
+            {
+                playerWasCaughtServerRpc();
             }
         }
     }
@@ -250,6 +292,8 @@ public class Rounds : NetworkBehaviour
 
     public void SwitchSides()
     {
+        _catchTimer.text = string.Empty;
+        _catchTimerText.text = string.Empty;
         backgroundMusic.Play();
         if (role1 == playerRole.chaser)
         {
@@ -303,9 +347,21 @@ public class Rounds : NetworkBehaviour
         Debug.Log(playerID + " playerId");
         _gameOverText.GetComponent<TextMeshProUGUI>().enabled = true;
         if (winnderId == playerID)
+        {
             _gameOverText.text = "You've won";
+            if (!PlayerPrefs.HasKey("Total Wins"))
+                PlayerPrefs.SetInt("Total Wins", 0);
+            else
+                PlayerPrefs.SetInt("Total Wins", PlayerPrefs.GetInt("Total WIns") + 1);
+        }
         else
+        {
             _gameOverText.text = "You've lost";
+            if (!PlayerPrefs.HasKey("Total Losses"))
+                PlayerPrefs.SetInt("Total Losses", 0);
+            else
+                PlayerPrefs.SetInt("Total Losses", PlayerPrefs.GetInt("Total Losses") + 1);
+        }
         score_1.enabled = false;
         score_2.enabled = false;
         _countDownText.enabled = false;
