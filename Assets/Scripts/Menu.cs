@@ -32,6 +32,7 @@ public class Menu : MonoBehaviour
     [SerializeField] private Button dashright_button;
     [SerializeField] private Button dashleft_buttonPC;
     [SerializeField] private Button dashright_buttonPC;
+    [SerializeField] private GameObject settings_options;
 
     public TMP_InputField input_ipAdress;
     public TMP_Text host_IPadress_textbox;
@@ -58,7 +59,11 @@ public class Menu : MonoBehaviour
         screenMode_dropdown.value = PlayerPrefs.GetInt("ScreenMode");
 
         if (SystemInfo.deviceType == DeviceType.Handheld)
+        {
             mobile = true;
+            settings_options.SetActive(false);
+        }
+
 
     }
 

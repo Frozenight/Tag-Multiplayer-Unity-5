@@ -101,7 +101,7 @@ public class Rounds : NetworkBehaviour
 
     private GameObject myPlayer;
     private GameObject enemyPlayer;
-    private float safeDistance = 10f;
+    private float safeDistance = 7f;
     private float catchTimer = 5f;
 
     private void Start()
